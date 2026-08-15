@@ -1,0 +1,96 @@
+import { pgTable, serial, text, timestamp, boolean, integer, varchar } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { z } from "zod";
+
+
+// Define the roles table
+export const roles = pgTable("roles", {
+  role_id: serial("role_id").primaryKey(),
+  name: text("name").notNull(),
+});
+
+
+// Define the users table
+export const users = pgTable("users", {
+  user_id: serial("user_id").primaryKey(),
+  first_name: varchar("first_name", { length: 100 }).notNull(),
+  last_name: varchar("last_name", { length: 100 }).notNull(),
+  email: varchar("email", { length: 150 }).notNull().unique(),
+  password: varchar("password", { length: 255 }).notNull(),
+  role_id: integer("role_id").notNull().references(() => roles.role_id),
+});
+
+// Define the role_codes table
+export const roleCodes = pgTable("role_codes", {
+  code_id: serial("code_id").primaryKey(),
+  code: varchar("code", { length: 50 }).notNull().unique(),
+  is_active: boolean("is_active").notNull().default(true),
+  role_id: integer("role_id").notNull().references(() => roles.role_id, { onDelete: "cascade" }),
+});
+
+// Define the email_verifications table
+export const emailVerifications = pgTable("email_verifications", {
+  verification_id: serial("verification_id").primaryKey(),
+  code: varchar("code", { length: 10 }).notNull(),
+  expires_at: timestamp("expires_at").notNull(),
+  verified_at: timestamp("verified_at"),
+  user_id: integer("user_id").notNull().unique().references(() => users.user_id, { onDelete: "cascade" }),
+});
+
+// Define relations
+
+// Define relations between tables
+export const rolesRelations = relations(roles, ({ many }) => ({
+  users: many(users),
+  roleCodes: many(roleCodes),
+}));
+
+// Define relations between tables
+export const usersRelations = relations(users, ({ one, many }) => ({
+  role: one(roles, {
+    fields: [users.role_id],
+    references: [roles.role_id],
+  }),
+  verifications: many(emailVerifications),
+}));
+
+// Define relations between tables
+export const roleCodesRelations = relations(roleCodes, ({ one }) => ({
+  role: one(roles, {
+    fields: [roleCodes.role_id],
+    references: [roles.role_id],
+  }),
+}));
+
+// Define relations between tables
+export const emailVerificationsRelations = relations(emailVerifications, ({ one }) => ({
+  user: one(users, {
+    fields: [emailVerifications.user_id],
+    references: [users.user_id],
+  }),
+}));
+
+
+// Create Zod schemas for the users table
+export const registerUserSchema = z.object({
+  first_name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+  last_name: z.string().min(2, "El apellido debe tener al menos 2 caracteres"),
+  email: z.string().email("Formato de correo electrónico inválido"),
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+  role_id: z.coerce.number().int().positive("El rol es requerido"),
+  code: z
+    .string()
+    .trim()
+    .min(1, "El código de rol es requerido")
+    .transform((value) => value.toUpperCase()),
+});
+
+
+// Create Zod schemas for the users table
+export const loginUserSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+
+export const selectUserSchema = createSelectSchema(users);

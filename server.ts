@@ -1,5 +1,9 @@
 import app from './src/app';
 import env from './env';
+import authRoutes from './src/routes/authRoutes';
+
+app.use('/api/auth', authRoutes);
+
 
 
 app.use('/api', (req, res) =>{
