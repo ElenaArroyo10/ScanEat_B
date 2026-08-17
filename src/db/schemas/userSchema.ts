@@ -38,6 +38,26 @@ export const emailVerifications = pgTable("email_verifications", {
   user_id: integer("user_id").notNull().unique().references(() => users.user_id, { onDelete: "cascade" }),
 });
 
+// Define the login_verifications table
+export const loginVerifications = pgTable("login_verifications", {
+  otp_id:serial("otp_id").primaryKey(),
+  code: varchar("code", { length: 10 }).notNull(),
+  expires_at: timestamp("expires_at").notNull(),
+  verified_at: timestamp("verified_at"),
+  user_id: integer("user_id").notNull().references(() => users.user_id, { onDelete: "cascade" }),
+});
+
+// Define the reset_verifications table
+export const resetVerifications = pgTable("reset_verifications", {
+  reset_id:serial("reset_id").primaryKey(),
+  code: varchar("code", { length: 10 }).notNull(),
+  expires_at: timestamp("expires_at").notNull(),
+  verified_at: timestamp("verified_at"),
+  user_id: integer("user_id").notNull().references(() => users.user_id, { onDelete: "cascade" }),
+});
+
+
+
 // Define relations
 
 // Define relations between tables
@@ -67,6 +87,20 @@ export const roleCodesRelations = relations(roleCodes, ({ one }) => ({
 export const emailVerificationsRelations = relations(emailVerifications, ({ one }) => ({
   user: one(users, {
     fields: [emailVerifications.user_id],
+    references: [users.user_id],
+  }),
+}));
+
+export const loginVerificationsRelations = relations(loginVerifications, ({ one }) => ({
+  user: one(users, {
+    fields: [loginVerifications.user_id],
+    references: [users.user_id],
+  }),
+}));
+
+export const resetVerificationsRelations = relations(resetVerifications, ({ one }) => ({
+  user: one(users, {
+    fields: [resetVerifications.user_id],
     references: [users.user_id],
   }),
 }));
