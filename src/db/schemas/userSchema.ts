@@ -10,6 +10,30 @@ export const roles = pgTable("roles", {
   name: text("name").notNull(),
 });
 
+// Define the pending_registrations table
+export const pendingRegistrations = pgTable("pending_registrations", {
+    pending_id: serial("pending_id").primaryKey(),
+
+    first_name: varchar("first_name", { length: 100 }).notNull(),
+
+    last_name: varchar("last_name", { length: 100 }).notNull(),
+
+    email: varchar("email", { length: 255 }).notNull().unique(),
+
+    password: text("password").notNull(),
+
+    role_id: integer("role_id")
+        .notNull()
+        .references(() => roles.role_id, {
+            onDelete: "cascade",
+        }),
+
+    code: varchar("code", { length: 10 }).notNull(),
+
+    expires_at: timestamp("expires_at").notNull(),
+
+    created_at: timestamp("created_at").defaultNow(),
+});
 
 // Define the users table
 export const users = pgTable("users", {
@@ -20,6 +44,7 @@ export const users = pgTable("users", {
   password: varchar("password", { length: 255 }).notNull(),
   role_id: integer("role_id").notNull().references(() => roles.role_id),
 });
+
 
 // Define the role_codes table
 export const roleCodes = pgTable("role_codes", {
