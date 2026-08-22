@@ -1,15 +1,18 @@
 import { Router } from "express";
-import {
-  forgotPassword,
-  register,
-  resendVerificationCode,
-  resetPassword,
-  verifyEmail,
-  login,
-  verifyLoginCode,
-  resendLoginCode,
-  resendResetCode,
-  editProfile,} from "../controllers/authController";
+
+  import { forgotPassword } from "../controllers/verificationController";
+  import { register } from "../controllers/registerController";
+  import { resendVerificationCode } from "../controllers/verificationController";
+  import { resetPassword } from "../controllers/verificationController";
+  import { verifyEmail } from "../controllers/registerController";
+  import { login } from "../controllers/loginController";
+  import { verifyLoginCode } from "../controllers/loginController";
+  import { resendLoginCode } from "../controllers/loginController";
+  import { resendResetCode } from "../controllers/verificationController";
+  import { editProfile } from "../controllers/profileController";
+  
+
+
 import { validateBody } from "../middleware/validations";
 import { registerUserSchema } from "../db/schemas/userSchema";
 import { authenticate } from "../middleware/authenticate";

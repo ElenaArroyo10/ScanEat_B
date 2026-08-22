@@ -1,0 +1,1 @@
+// inicialice el cliente con createClient(url, serviceRoleKey) y exporte funciones uploadProductImage(file) y deleteProductImage(path), usando el bucket 'product-images'.
