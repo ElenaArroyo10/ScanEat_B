@@ -9,6 +9,7 @@ import { comparePassword } from "../utils/passwords";
 import { generateVerificationCode } from "../utils/generateCode";
 import { sendVerificationEmail } from '../services/email.service';
 import { AuthRequest } from "../middleware/authenticate";
+import { isProd } from "../../env";
 
 const normalizeEmail = (value: string) => value.trim().toLowerCase();
 
@@ -110,6 +111,18 @@ export const register = async (req: Request, res: Response) => {
         if (String(password).length < 8) {
             return res.status(400).json({
                 message: "La contraseña debe tener al menos 8 caracteres",
+            });
+        }
+
+        if (!/\d/.test(String(password))) {
+            return res.status(400).json({
+                message: "La contraseña debe contener al menos un número",
+            });
+        }
+
+        if (!/[!@#$%^&*(),.?":{}|<>_\-\\[\]'/+=;`~]/.test(String(password))) {
+            return res.status(400).json({
+                message: "La contraseña debe contener al menos un símbolo",
             });
         }
 
@@ -402,12 +415,9 @@ export const resendVerificationCode = async (req: Request, res: Response) => {
     };
 
     // Código de desarrollo si SMTP no está configurado
-    if (process.env.APP_STAGE === "dev" && !isSmtpConfigured()) {
-      response.message =
-        "SMTP no está configurado; usa el código dev para verificar tu cuenta.";
-
-      response.verificationCode = verificationCode;
-    }
+   if (!isProd() && !isSmtpConfigured()) {
+  response.verificationCode = verificationCode;
+}
 
     return res.status(200).json(response);
   } catch (error) {
@@ -610,12 +620,9 @@ export const resendLoginCode = async (req: Request, res: Response) => {
     };
 
     // Código de desarrollo si SMTP no está configurado
-    if (process.env.APP_STAGE === "dev" && !isSmtpConfigured()) {
-      response.message =
-        "SMTP no está configurado; usa el código dev para verificar tu cuenta.";
-
-      response.verificationCode = verificationCode;
-    }
+     if (!isProd() && !isSmtpConfigured()) {
+  response.verificationCode = verificationCode;
+}
 
     return res.status(200).json(response);
   } catch (error) {
@@ -690,6 +697,18 @@ export const resetPassword = async (req: Request, res: Response) => {
     if (String(newPassword).length < 8) {
       return res.status(400).json({
         message: "La contraseña debe tener al menos 8 caracteres",
+      });
+    }
+
+    if (!/\d/.test(String(newPassword))) {
+      return res.status(400).json({
+        message: "La contraseña debe contener al menos un número",
+      });
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>_\-\\[\]'/+=;`~]/.test(String(newPassword))) {
+      return res.status(400).json({
+        message: "La contraseña debe contener al menos un símbolo",
       });
     }
 
@@ -815,12 +834,9 @@ export const resendResetCode = async (req: Request, res: Response) => {
     };
 
     // Código de desarrollo si SMTP no está configurado
-    if (process.env.APP_STAGE === "dev" && !isSmtpConfigured()) {
-      response.message =
-        "SMTP no está configurado; usa el código dev para verificar tu cuenta.";
-
-      response.verificationCode = verificationCode;
-    }
+     if (!isProd() && !isSmtpConfigured()) {
+  response.verificationCode = verificationCode;
+}
 
     return res.status(200).json(response);
   } catch (error) {

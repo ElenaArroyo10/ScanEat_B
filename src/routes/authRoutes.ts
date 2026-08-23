@@ -13,18 +13,19 @@ import {
 import { validateBody } from "../middleware/validations";
 import { registerUserSchema } from "../db/schemas/userSchema";
 import { authenticate } from "../middleware/authenticate";
+import { strictLimiter,moderateLimiter } from "../middleware/rateLimiter";
 
 const router = Router();
 
-router.post("/register", validateBody(registerUserSchema), register);
-router.post("/verify-email", verifyEmail);
-router.post("/resend-verification-code", resendVerificationCode);
-router.post("/login", login);
-router.post("/verify-login-code", verifyLoginCode);
-router.post("/resend-login-code", resendLoginCode);
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password", resetPassword);
-router.post("/resend-reset-code", resendResetCode);
+router.post("/register",moderateLimiter, validateBody(registerUserSchema), register);
+router.post("/verify-email",strictLimiter, verifyEmail);
+router.post("/resend-verification-code",moderateLimiter, resendVerificationCode);
+router.post("/login",strictLimiter, login);
+router.post("/verify-login-code",strictLimiter, verifyLoginCode);
+router.post("/resend-login-code",moderateLimiter, resendLoginCode);
+router.post("/forgot-password",moderateLimiter, forgotPassword);
+router.post("/reset-password",strictLimiter, resetPassword);
+router.post("/resend-reset-code",moderateLimiter, resendResetCode);
 router.patch("/edit-profile", authenticate, editProfile);
 
 export default router;

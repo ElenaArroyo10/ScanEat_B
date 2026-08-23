@@ -49,8 +49,8 @@ const envSchema = z.object({
         .default('dev'),
     
     APP_STAGE: z
-        .enum(['production', 'dev', 'test'])
-        .default('dev'),
+        .enum(['production', 'dev', 'test']),
+        
     
     PORT: z.coerce.number().positive().default(3000),
 
