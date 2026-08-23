@@ -9,7 +9,8 @@ import {
   verifyLoginCode,
   resendLoginCode,
   resendResetCode,
-  editProfile,} from "../controllers/authController";
+  editProfile,
+changePassword} from "../controllers/authController";
 import { validateBody } from "../middleware/validations";
 import { registerUserSchema } from "../db/schemas/userSchema";
 import { authenticate } from "../middleware/authenticate";
@@ -26,5 +27,5 @@ router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 router.post("/resend-reset-code", resendResetCode);
 router.patch("/edit-profile", authenticate, editProfile);
-
+router.patch("/change-password", authenticate, changePassword);
 export default router;
