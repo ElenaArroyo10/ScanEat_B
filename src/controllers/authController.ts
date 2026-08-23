@@ -959,3 +959,85 @@ export const editProfile = async (
     });
   }
 };
+
+//Controlador para cambiar la contraseña del usuario dentro de su perfil debe poner su contraseña actual y la nueva contraseña y confirmar la nueva contraseña
+
+export const changePassword = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.user_id;
+    if (!userId){
+      return res.status(401).json({
+        message: "No autenticado"
+      });
+    }
+    const {
+      currentPassword,
+      newPassword, 
+      confirmPassword,
+    }= req.body ??{};
+    
+    if (!currentPassword || !newPassword || !confirmPassword){
+      return res.status(400).json({
+        message: "Todos los campos son requeridos"
+      });
+    }
+
+    if (String(newPassword).length < 8){
+      return res.status(400).json({
+        message: "La nueva contraseña debe tener al menos 8 caracteres"
+      });
+    }
+
+    if (String(newPassword) !== String(confirmPassword)){
+      return res.status(400).json({
+        message: "Las contraseñas no coinciden"
+      });
+    }
+
+    const [user] = await db.select({
+      user_id: users.user_id,
+      password: users.password,
+    })
+    .from(users)
+    .where(eq(users.user_id, userId))
+    .limit(1);
+
+    if (!user){
+      return res.status(404).json({
+        message: "Usuario no encontrado"
+      });
+    }
+
+    const isCurrentPasswordValid = await comparePassword( 
+    String(currentPassword), user.password
+  );
+
+  if (!isCurrentPasswordValid){
+    return res.status(400).json({
+      message: "La contraseña actual es incorrecta"
+    });
+  }
+
+  const hashedPassword = await hashPassword(String(newPassword));
+
+  await db.update(users)
+  .set({ password: hashedPassword })
+  .where(eq(users.user_id, userId));
+
+  await db
+  .delete(loginVerifications)
+  .where(eq(loginVerifications.user_id, userId));
+
+  return res.status(200).json({
+      message: "Contraseña cambiada correctamente",
+    });
+  } catch (error) {
+    console.error("Change password error:", error);
+
+    return res.status(500).json({
+      message: "No se pudo cambiar la contraseña",
+    });
+  }
+};
+
+
