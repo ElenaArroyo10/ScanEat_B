@@ -10,6 +10,9 @@ import { generateVerificationCode } from "../utils/generateCode";
 import { sendVerificationEmail } from '../services/email.service';
 import { AuthRequest } from "../middleware/authenticate";
 import { isProd } from "../../env";
+import { validatePasswordStrength } from "../utils/passwordValidation";
+
+
 
 const normalizeEmail = (value: string) => value.trim().toLowerCase();
 
@@ -108,23 +111,10 @@ export const register = async (req: Request, res: Response) => {
             });
         }
 
-        if (String(password).length < 8) {
-            return res.status(400).json({
-                message: "La contraseña debe tener al menos 8 caracteres",
-            });
-        }
-
-        if (!/\d/.test(String(password))) {
-            return res.status(400).json({
-                message: "La contraseña debe contener al menos un número",
-            });
-        }
-
-        if (!/[!@#$%^&*(),.?":{}|<>_\-\\[\]'/+=;`~]/.test(String(password))) {
-            return res.status(400).json({
-                message: "La contraseña debe contener al menos un símbolo",
-            });
-        }
+const passwordError = validatePasswordStrength(String(password));
+if (passwordError) {
+  return res.status(400).json({ message: passwordError });
+}
 
         // Validar código de autorización del empleado
         const validRoleCode = await db
@@ -650,7 +640,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     .limit(1);
 
     if (!user) {
-      return res.status(404).json({ message: "Usuario no encontrado" });
+      return res.status(200).json({ message: "Si el correo está registrado, recibirás un código de restablecimiento" });
     }
 
     const code = generateVerificationCode();
@@ -694,23 +684,10 @@ export const resetPassword = async (req: Request, res: Response) => {
       });
     }
 
-    if (String(newPassword).length < 8) {
-      return res.status(400).json({
-        message: "La contraseña debe tener al menos 8 caracteres",
-      });
-    }
-
-    if (!/\d/.test(String(newPassword))) {
-      return res.status(400).json({
-        message: "La contraseña debe contener al menos un número",
-      });
-    }
-
-    if (!/[!@#$%^&*(),.?":{}|<>_\-\\[\]'/+=;`~]/.test(String(newPassword))) {
-      return res.status(400).json({
-        message: "La contraseña debe contener al menos un símbolo",
-      });
-    }
+    const passwordError = validatePasswordStrength(String(newPassword));
+if (passwordError) {
+  return res.status(400).json({ message: passwordError });
+}
 
     const normalizedEmail = normalizeEmail(email);
 
@@ -849,6 +826,56 @@ export const resendResetCode = async (req: Request, res: Response) => {
 };
 
 
+
+
+//controaldor para obtener los datos de un perfil
+export const getProfile = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const userId = req.user?.user_id;
+
+    if (!userId) {
+      return res.status(401).json({
+        message: "No autenticado",
+      });
+    }
+
+    const [user] = await db
+      .select({
+        userId: users.user_id,
+        firstName: users.first_name,
+        lastName: users.last_name,
+        email: users.email,
+        roleId: users.role_id,
+      })
+      .from(users)
+      .where(eq(users.user_id, userId))
+      .limit(1);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "Usuario no encontrado",
+      });
+    }
+
+    return res.status(200).json({
+      user,
+    });
+  } catch (error) {
+    console.error("Get profile error:", error);
+
+    return res.status(500).json({
+      message: "No se pudo obtener el perfil",
+    });
+  }
+};
+
+
+
+
+
 //controldor para editar la informacion del perfil (nombre, apellido, correo, contraseña) del usuario
 export const editProfile = async (
   req: AuthRequest,
@@ -970,10 +997,10 @@ let emailChanged=false;
     }
 
     return res.status(200).json({
-      message: "Perfil actualizado correctamente",
-      user: updatedUser,
-       requiresEmailVerification: true,
-    });
+  message: "Perfil actualizado correctamente",
+  user: updatedUser,
+  requiresEmailVerification: emailChanged,
+});
   } catch (error) {
     console.error("Update profile error:", error);
 
@@ -1005,23 +1032,10 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    if (String(newPassword).length < 8){
-      return res.status(400).json({
-        message: "La nueva contraseña debe tener al menos 8 caracteres"
-      });
-    }
-
-    if (!/\d/.test(String(newPassword))) {
-      return res.status(400).json({
-        message: "La nueva contraseña debe contener al menos un número",
-      });
-    }
-
-    if (!/[!@#$%^&*(),.?":{}|<>_\-\\[\]'/+=;`~]/.test(String(newPassword))) {
-      return res.status(400).json({
-        message: "La nueva contraseña debe contener al menos un símbolo",
-      });
-    }
+    const passwordError = validatePasswordStrength(String(newPassword));
+if (passwordError) {
+  return res.status(400).json({ message: passwordError });
+}
 
     if (String(newPassword) !== String(confirmPassword)){
       return res.status(400).json({
@@ -1079,66 +1093,6 @@ if (isSamePassword){
 
     return res.status(500).json({
       message: "No se pudo cambiar la contraseña",
-    });
-  }
-};
-
-// Controlador para verificar el nuevo correo tras un cambio de perfil
-export const verifyProfileEmail = async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.user?.user_id;
-
-    if (!userId) {
-      return res.status(401).json({ message: "No autenticado" });
-    }
-
-    const { code } = req.body ?? {};
-
-    if (!code) {
-      return res.status(400).json({
-        message: "El código de verificación es requerido",
-      });
-    }
-
-    const normalizedCode = String(code).trim();
-
-    const [verification] = await db
-      .select()
-      .from(emailVerifications)
-      .where(eq(emailVerifications.user_id, userId))
-      .limit(1);
-
-    if (!verification) {
-      return res.status(404).json({
-        message: "No existe una verificación pendiente para este usuario",
-      });
-    }
-
-    if (new Date(verification.expires_at).getTime() < Date.now()) {
-      return res.status(400).json({
-        message: "El código de verificación expiró",
-      });
-    }
-
-    if (verification.code !== normalizedCode) {
-      return res.status(400).json({
-        message: "Código inválido",
-      });
-    }
-
-    await db
-      .update(emailVerifications)
-      .set({ verified_at: new Date() })
-      .where(eq(emailVerifications.user_id, userId));
-
-    return res.status(200).json({
-      message: "Correo verificado correctamente",
-    });
-  } catch (error) {
-    console.error("Verify profile email error:", error);
-
-    return res.status(500).json({
-      message: "No se pudo verificar el correo",
     });
   }
 };

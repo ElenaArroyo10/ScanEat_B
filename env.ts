@@ -80,7 +80,8 @@ try{
     env = envSchema.parse(process.env);
 }catch (error) {
     if (error instanceof z.ZodError) {
-        console.error('Environment variable validation failed ' + JSON.stringify(z.treeifyError(error), null, 2));
+        const failedFields = error.issues.map((err) => err.path.join('.'));
+        console.error('Environment variable validation failed for:', failedFields.join(', '));
 
         error.issues.forEach((err) => {
             const path = err.path.join('.');
@@ -98,5 +99,5 @@ export const isProd = ()=> env.APP_STAGE === 'production';
 export const isDev = ()=> env.APP_STAGE === 'dev';
 export const isTest = ()=> env.APP_STAGE === 'test';
 
-// console.log("DATABASE_URL:", process.env.DATABASE_URL);
+
 export default env;

@@ -1,10 +1,10 @@
-import rateLimit from "express-rate-limit";
+import rateLimit,{ipKeyGenerator} from "express-rate-limit";
 import type { Request } from "express";
-import { email } from "zod";
+
 
 const emailKeyGenerator = (req: Request) => {
   const email = (req.body?.email ?? "").toString().toLowerCase().trim();
-  return `${req.ip}-${email}`;
+  return `${ipKeyGenerator(req.ip ?? "")}-${email}`;
 };
 
 //Limite de intentos para codigos

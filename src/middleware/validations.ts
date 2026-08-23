@@ -26,6 +26,7 @@ export const validateBody = (schema: z.ZodTypeAny) => {
                     errors: formattedErrors
                 });
             }
+            next(error); 
         }
     }
 }

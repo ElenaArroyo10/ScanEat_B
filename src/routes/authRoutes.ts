@@ -10,10 +10,13 @@ import {
   resendLoginCode,
   resendResetCode,
   editProfile,
-changePassword} from "../controllers/authController";
+changePassword,
+getProfile} from "../controllers/authController";
+
 import { validateBody } from "../middleware/validations";
 import { registerUserSchema } from "../db/schemas/userSchema";
 import { authenticate } from "../middleware/authenticate";
+import { updateUserSchema } from "../db/schemas/userSchema";
 import {
   registerLimiter,
   verifyEmailLimiter,
@@ -26,7 +29,7 @@ import {
   resendResetLimiter,
   
 } from "../middleware/rateLimiter";
-import { verifyProfileEmail } from "../controllers/authController";
+
 
 const router = Router();
 
@@ -39,10 +42,10 @@ router.post("/resend-login-code", resendLoginLimiter, resendLoginCode);
 router.post("/forgot-password", forgotPasswordLimiter, forgotPassword);
 router.post("/reset-password", resetPasswordLimiter, resetPassword);
 router.post("/resend-reset-code", resendResetLimiter, resendResetCode);
-router.patch("/edit-profile", authenticate, editProfile);
-router.patch("/change-password", authenticate, changePassword);
-router.post("/verify-profile-email", authenticate, verifyEmailLimiter, verifyProfileEmail);
 
+router.patch("/change-password", authenticate, changePassword);
+router.patch("/edit-profile", authenticate,validateBody(updateUserSchema),editProfile);
+router.get("/profile",authenticate,getProfile);
 
 
 

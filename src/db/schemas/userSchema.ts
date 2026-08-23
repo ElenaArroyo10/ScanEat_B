@@ -149,6 +149,26 @@ export const registerUserSchema = z.object({
 });
 
 
+//Zod schema para editar los campos de informacion logeado 
+
+export const updateUserSchema = z.object({
+  first_name: z
+    .string()
+    .min(2, "El nombre debe tener al menos 2 caracter")
+    .optional(),
+
+  last_name: z
+    .string()
+    .min(2, "El apellido debe tener al menos 2 caracteres")
+    .optional(),
+
+  email: z
+    .string()
+    .email("Formato de correo electrónico inválido")
+    .optional(),
+});
+
+
 // Create Zod schemas for the users table
 export const loginUserSchema = z.object({
   email: z.string().email(),

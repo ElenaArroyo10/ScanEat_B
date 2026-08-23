@@ -21,7 +21,9 @@ export const generateToken = async (payload: CustomJWTPayload) => {
 export const verifyToken = async (token: string) => {
   const secretKey = createSecretKey(env.JWT_SECRET, "utf-8");
 
-  const { payload } = await jwtVerify(token, secretKey);
+  const { payload } = await jwtVerify(token, secretKey,{
+    algorithms: ["HS256"],
+  });
 
   return payload as CustomJWTPayload;
 };
