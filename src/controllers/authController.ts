@@ -880,6 +880,7 @@ export const editProfile = async (
 
     // Campos que se modificarán en la base de datos.
     const edits: Partial<typeof users.$inferInsert> = {};
+let emailChanged=false;
 
     // Actualizar nombre si fue enviado.
     if (first_name !== undefined) {
@@ -925,7 +926,16 @@ export const editProfile = async (
         });
       }
 
-      edits.email = normalizedEmail;
+      const [currentUser] = await db
+        .select({ email: users.email })
+        .from(users)
+        .where(eq(users.user_id, userId))
+        .limit(1);
+
+      if (currentUser && normalizeEmail(currentUser.email) !== normalizedEmail) {
+        edits.email = normalizedEmail;
+        emailChanged = true;
+      }
     }
 
     // Guardamos los cambios del perfil.
@@ -947,9 +957,22 @@ export const editProfile = async (
       });
     }
 
+ // Si cambió el email, forzar re-verificación
+    if (emailChanged) {
+      try {
+        await createOrUpdateVerification(userId, updatedUser.email);
+      } catch (error) {
+        console.error("Error al reenviar verificación de correo:", error);
+        return res.status(500).json({
+          message: "Perfil actualizado, pero no se pudo enviar la verificación al nuevo correo",
+        });
+      }
+    }
+
     return res.status(200).json({
       message: "Perfil actualizado correctamente",
       user: updatedUser,
+       requiresEmailVerification: true,
     });
   } catch (error) {
     console.error("Update profile error:", error);
@@ -988,6 +1011,18 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    if (!/\d/.test(String(newPassword))) {
+      return res.status(400).json({
+        message: "La nueva contraseña debe contener al menos un número",
+      });
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>_\-\\[\]'/+=;`~]/.test(String(newPassword))) {
+      return res.status(400).json({
+        message: "La nueva contraseña debe contener al menos un símbolo",
+      });
+    }
+
     if (String(newPassword) !== String(confirmPassword)){
       return res.status(400).json({
         message: "Las contraseñas no coinciden"
@@ -1018,6 +1053,14 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
     });
   }
 
+
+const isSamePassword = await comparePassword(String(newPassword), user.password);
+if (isSamePassword){
+  return res.status(400).json({
+    message:"La nueva contraseña debe ser diferente a la actual",
+  });
+}
+
   const hashedPassword = await hashPassword(String(newPassword));
 
   await db.update(users)
@@ -1040,4 +1083,62 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Controlador para verificar el nuevo correo tras un cambio de perfil
+export const verifyProfileEmail = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.user_id;
 
+    if (!userId) {
+      return res.status(401).json({ message: "No autenticado" });
+    }
+
+    const { code } = req.body ?? {};
+
+    if (!code) {
+      return res.status(400).json({
+        message: "El código de verificación es requerido",
+      });
+    }
+
+    const normalizedCode = String(code).trim();
+
+    const [verification] = await db
+      .select()
+      .from(emailVerifications)
+      .where(eq(emailVerifications.user_id, userId))
+      .limit(1);
+
+    if (!verification) {
+      return res.status(404).json({
+        message: "No existe una verificación pendiente para este usuario",
+      });
+    }
+
+    if (new Date(verification.expires_at).getTime() < Date.now()) {
+      return res.status(400).json({
+        message: "El código de verificación expiró",
+      });
+    }
+
+    if (verification.code !== normalizedCode) {
+      return res.status(400).json({
+        message: "Código inválido",
+      });
+    }
+
+    await db
+      .update(emailVerifications)
+      .set({ verified_at: new Date() })
+      .where(eq(emailVerifications.user_id, userId));
+
+    return res.status(200).json({
+      message: "Correo verificado correctamente",
+    });
+  } catch (error) {
+    console.error("Verify profile email error:", error);
+
+    return res.status(500).json({
+      message: "No se pudo verificar el correo",
+    });
+  }
+};

@@ -14,7 +14,7 @@ import { z } from 'zod';
 
     The expression process.env.APP_STAGE || 'dev' works by checking if process.env.APP_STAGE already has a truthy value. If APP_STAGE was defined in your .env file or system environment variables, it will use that existing value. However, if APP_STAGE is undefined, null, an empty string, or any other falsy value, the OR operator (||) will "short-circuit" and use the fallback value 'dev' instead.
 */
-process.env.APP_STAGE = process.env.APP_STAGE || 'dev';
+//process.env.APP_STAGE = process.env.APP_STAGE || 'dev';
 
 /*
     process is a global object in Node.js, not a regular variable. It's automatically available in every Node.js application without needing to import it.
@@ -26,11 +26,14 @@ const isProduction = process.env.APP_STAGE === 'production';
 const isDevelopment = process.env.APP_STAGE === 'dev';
 const isTesting = process.env.APP_STAGE === 'test';
 
-if (isProduction) { 
+// Solo para decidir qué .env cargar; no modifica process.env.APP_STAGE
+const currentStage = process.env.APP_STAGE || 'dev';
+
+if (currentStage === 'production') { 
     loadEnv('production');
-} else if (isDevelopment) {
+} else if (currentStage === 'dev') {
     loadEnv();
-} else if (isTesting) {
+} else if (currentStage === 'test') {
     loadEnv('test');
 }
 
@@ -95,5 +98,5 @@ export const isProd = ()=> env.APP_STAGE === 'production';
 export const isDev = ()=> env.APP_STAGE === 'dev';
 export const isTest = ()=> env.APP_STAGE === 'test';
 
-console.log("DATABASE_URL:", process.env.DATABASE_URL);
+// console.log("DATABASE_URL:", process.env.DATABASE_URL);
 export default env;

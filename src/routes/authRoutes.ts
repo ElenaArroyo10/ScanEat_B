@@ -14,19 +14,36 @@ changePassword} from "../controllers/authController";
 import { validateBody } from "../middleware/validations";
 import { registerUserSchema } from "../db/schemas/userSchema";
 import { authenticate } from "../middleware/authenticate";
-import { strictLimiter,moderateLimiter } from "../middleware/rateLimiter";
+import {
+  registerLimiter,
+  verifyEmailLimiter,
+  resendVerificationLimiter,
+  loginLimiter,
+  verifyLoginLimiter,
+  resendLoginLimiter,
+  forgotPasswordLimiter,
+  resetPasswordLimiter,
+  resendResetLimiter,
+  
+} from "../middleware/rateLimiter";
+import { verifyProfileEmail } from "../controllers/authController";
 
 const router = Router();
 
-router.post("/register",moderateLimiter, validateBody(registerUserSchema), register);
-router.post("/verify-email",strictLimiter, verifyEmail);
-router.post("/resend-verification-code",moderateLimiter, resendVerificationCode);
-router.post("/login",strictLimiter, login);
-router.post("/verify-login-code",strictLimiter, verifyLoginCode);
-router.post("/resend-login-code",moderateLimiter, resendLoginCode);
-router.post("/forgot-password",moderateLimiter, forgotPassword);
-router.post("/reset-password",strictLimiter, resetPassword);
-router.post("/resend-reset-code",moderateLimiter, resendResetCode);
+router.post("/register", registerLimiter, validateBody(registerUserSchema), register);
+router.post("/verify-email", verifyEmailLimiter, verifyEmail);
+router.post("/resend-verification-code", resendVerificationLimiter, resendVerificationCode);
+router.post("/login", loginLimiter, login);
+router.post("/verify-login-code", verifyLoginLimiter, verifyLoginCode);
+router.post("/resend-login-code", resendLoginLimiter, resendLoginCode);
+router.post("/forgot-password", forgotPasswordLimiter, forgotPassword);
+router.post("/reset-password", resetPasswordLimiter, resetPassword);
+router.post("/resend-reset-code", resendResetLimiter, resendResetCode);
 router.patch("/edit-profile", authenticate, editProfile);
 router.patch("/change-password", authenticate, changePassword);
+router.post("/verify-profile-email", authenticate, verifyEmailLimiter, verifyProfileEmail);
+
+
+
+
 export default router;
