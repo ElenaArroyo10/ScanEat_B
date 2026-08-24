@@ -26,6 +26,7 @@
     "drizzle-zod": "^0.8.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.2",
+    "googleapis": "^176.0.0",
     "helmet": "^8.2.0",
     "jose": "^6.2.3",
     "nodemailer": "^9.0.5",

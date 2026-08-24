@@ -1,45 +1,90 @@
-//Este archivo contiene la lógica para enviar correos electrónicos de verificación.
-// Si no se configuran las variables de entorno SMTP, los códigos de verificación se imprimirán en la consola.
 
-import nodemailer from 'nodemailer';
+import { google } from 'googleapis';
 
-function createTransporter() {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+function getGmailClient() {
+  const {
+    GMAIL_USER,
+    GMAIL_CLIENT_ID,
+    GMAIL_CLIENT_SECRET,
+    GMAIL_REFRESH_TOKEN,
+  } = process.env;
+
+  if (!GMAIL_USER || !GMAIL_CLIENT_ID || !GMAIL_CLIENT_SECRET || !GMAIL_REFRESH_TOKEN) {
     return null;
   }
 
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: String(process.env.SMTP_SECURE).toLowerCase() === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASSWORD,
-    },
-  });
+  const oAuth2Client = new google.auth.OAuth2(
+    GMAIL_CLIENT_ID,
+    GMAIL_CLIENT_SECRET,
+    'https://developers.google.com/oauthplayground',
+  );
+p
+  oAuth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN });
+
+  return google.gmail({ version: 'v1', auth: oAuth2Client });
+}
+
+function buildRawEmail({
+  from,
+  to,
+  subject,
+  html,
+}: {
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+}) {
+  const messageParts = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=UTF-8',
+    '',
+    html,
+  ];
+
+  const message = messageParts.join('\n');
+
+  return Buffer.from(message)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 }
 
 export async function sendVerificationEmail({ to, code }: { to: string; code: string }) {
-  const transporter = createTransporter();
+  console.log('🔵 sendVerificationEmail fue llamada con:', to);
 
-  if (!transporter) {
-    console.log(`\n[Garabatos Scan] codigo de verificación para ${to}: ${code}\n`);
+  const gmail = getGmailClient();
+
+  if (!gmail) {
+    console.log(`\n[Scan n'eat] codigo de verificación para ${to}: ${code}\n`);
     return;
   }
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+  const html = `
+    <div style="font-family: Arial, sans-serif;">
+      <h2>Scan n'eat</h2>
+      <p>Tu código de verificación es:</p>
+      <h1 style="letter-spacing: 8px;">${code}</h1>
+      <p>Este código expira en 10 minutos.</p>
+      <p>Si no solicitaste este código, por favor ignóralo.</p>
+    </div>
+  `;
+
+  const raw = buildRawEmail({
+    from: `Scan n'eat <${process.env.GMAIL_USER}>`,
     to,
-    subject: 'Garabatos Scan - Código de verificación',
-    text: `Tu código de verificación para Garabatos Scan es: ${code}. Expira en 10 minutos.`,
-    html: `
-      <div style="font-family: Arial, sans-serif;">
-        <h2>Garabatos Scan</h2>
-        <p>Tu código de verificación es:</p>
-        <h1 style="letter-spacing: 8px;">${code}</h1>
-        <p>Este código expira en 10 minutos.</p>
-        <p>Si no solicitaste este código, por favor ignóralo.</p>
-      </div>
-    `,
+    subject: "Scan n'eat - Código de verificación",
+    html,
   });
+
+  await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: { raw },
+  });
+
+  console.log(`✅ Email enviado correctamente a ${to}`);
 }
