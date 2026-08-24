@@ -6,7 +6,8 @@ import { Request,Response,NextFunction } from 'express';
 
 app.use('/api/auth', authRoutes);
 
-
+console.log("AUTH ROUTES LOADED");
+console.log("VERIFY RESET CODE ROUTE LOADED");
 
 app.use('/api', (req, res) =>{
     res.status(404).json({ message: 'Endpoint not found' });
