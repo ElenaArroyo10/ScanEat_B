@@ -18,12 +18,12 @@ function getGmailClient() {
     GMAIL_CLIENT_SECRET,
     'https://developers.google.com/oauthplayground',
   );
-p
+
   oAuth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN });
 
   return google.gmail({ version: 'v1', auth: oAuth2Client });
 }
-
+//comentario para commit
 function buildRawEmail({
   from,
   to,
