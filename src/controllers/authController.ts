@@ -752,6 +752,72 @@ if (passwordError) {
   }
 };
 
+// Controlador para verificar el código de recuperación
+export const verifyResetCode = async (req: Request, res: Response) => {
+    try {
+        const { email, code } = req.body ?? {};
+
+        if (!email || !code) {
+            return res.status(400).json({
+                message: "El correo y el código son requeridos",
+            });
+        }
+
+        const normalizedEmail = normalizeEmail(String(email));
+
+        const [user] = await db
+            .select()
+            .from(users)
+            .where(
+                sql`LOWER(${users.email}) = LOWER(${normalizedEmail})`
+            )
+            .limit(1);
+
+        if (!user) {
+            return res.status(404).json({
+                message: "Usuario no encontrado",
+            });
+        }
+
+        const [resetCode] = await db
+            .select()
+            .from(resetVerifications)
+            .where(eq(resetVerifications.user_id, user.user_id))
+            .orderBy(desc(resetVerifications.reset_id))
+            .limit(1);
+
+        if (!resetCode) {
+            return res.status(404).json({
+                message: "No existe un código de recuperación para este usuario",
+            });
+        }
+
+        // Verificar si el código expiró
+        if (new Date(resetCode.expires_at).getTime() < Date.now()) {
+            return res.status(400).json({
+                message: "El código de recuperación expiró",
+            });
+        }
+
+        // Comparar código
+        if (resetCode.code !== String(code).trim()) {
+            return res.status(400).json({
+                message: "Código inválido",
+            });
+        }
+
+        return res.status(200).json({
+            message: "Código válido",
+        });
+    } catch (error) {
+        console.error("Verify reset code error:", error);
+
+        return res.status(500).json({
+            message: "No se pudo verificar el código",
+        });
+    }
+};
+
 //controlador para reenviar el reset code al correo
 export const resendResetCode = async (req: Request, res: Response) => {
   try {

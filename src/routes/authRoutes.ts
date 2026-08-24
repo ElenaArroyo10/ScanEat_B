@@ -11,7 +11,7 @@ import {
   resendResetCode,
   editProfile,
 changePassword,
-getProfile} from "../controllers/authController";
+getProfile, verifyResetCode} from "../controllers/authController";
 
 import { validateBody } from "../middleware/validations";
 import { registerUserSchema } from "../db/schemas/userSchema";
@@ -40,6 +40,7 @@ router.post("/login", loginLimiter, login);
 router.post("/verify-login-code", verifyLoginLimiter, verifyLoginCode);
 router.post("/resend-login-code", resendLoginLimiter, resendLoginCode);
 router.post("/forgot-password", forgotPasswordLimiter, forgotPassword);
+router.post("/verify-reset-code", verifyResetCode);
 router.post("/reset-password", resetPasswordLimiter, resetPassword);
 router.post("/resend-reset-code", resendResetLimiter, resendResetCode);
 
